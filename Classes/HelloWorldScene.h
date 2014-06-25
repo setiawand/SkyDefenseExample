@@ -63,14 +63,6 @@ private:
 	LabelBMFont * _energyDisplay;
 	LabelBMFont * _scoreDisplay;
 
-	CCAction * _growBomb;
-	CCAction * _rotateSprite;
-	CCAction * _shockwaveSequence;
-	CCAction * _swingHealth;
-//
-	CCAction * _groundHit;
-	CCAction * _explosion;
-
 	Size _screenSize;
 
 	float _meteorInterval;

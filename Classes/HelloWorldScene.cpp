@@ -124,7 +124,27 @@ void HelloWorld::update(float dt) {
 			if (pow(diffx, 2) + pow(diffy, 2)
 					<= pow(_shockWave->boundingBox().size.width * 0.5f, 2)) {
 				sprite->stopAllActions();
-//                sprite->runAction((CCAction *) _explosion->copy()->autorelease());
+
+				//sprite animations
+				auto animation = Animation::create();
+				SpriteFrame * frame;
+				//animation for falling object explosion
+				for (int i = 1; i <= 7; i++) {
+					char szName[100] = { 0 };
+					sprintf(szName, "explosion_small%i.png", i);
+					frame = SpriteFrameCache::getInstance()->spriteFrameByName(
+							szName);
+					animation->addSpriteFrame(frame);
+				}
+
+				animation->setDelayPerUnit(0.5 / 7.0f);
+				animation->setRestoreOriginalFrame(true);
+				auto _explosion = Sequence::create(Animate::create(animation),
+						CallFuncN::create(this,
+								callfuncN_selector(HelloWorld::animationDone)),
+						NULL);
+
+				sprite->runAction(_explosion);
 				SimpleAudioEngine::getInstance()->playEffect("boom.wav");
 				if (sprite->getTag() == kSpriteMeteor) {
 					_shockwaveHits++;
@@ -163,7 +183,7 @@ void HelloWorld::onTouchesBegan(const std::vector<Touch*>& touches,
 
 			//if game over, hide game over message
 		} else if (_gameOverMessage->isVisible()) {
-			SimpleAudioEngine::sharedEngine()->stopAllEffects();
+			SimpleAudioEngine::getInstance()->stopAllEffects();
 			_gameOverMessage->setVisible(false);
 
 		}
@@ -177,114 +197,55 @@ void HelloWorld::onTouchesBegan(const std::vector<Touch*>& touches,
 		if (touch) {
 			_bomb->stopAllActions();
 			if (_bomb->isVisible()) {
+				Sprite * child;
+				child = (Sprite *) _bomb->getChildByTag(kSpriteHalo);
+				child->stopAllActions();
+				child = (Sprite *) _bomb->getChildByTag(kSpriteSparkle);
+				child->stopAllActions();
+				//if bomb is the right size, then create shockwave
+				if (_bomb->getScale() > 0.3f) {
+					_shockWave->setScale(0.1f);
+					_shockWave->setPosition(_bomb->getPosition());
+					_shockWave->setVisible(true);
+					_shockWave->runAction(
+							ScaleTo::create(0.5f, _bomb->getScale() * 2.0f));
+					//action sequence for shockwave: fade out, call back when done
+					auto _shockwaveSequence =
+							Sequence::create(FadeOut::create(1.0f),
+									CallFunc::create(this,
+											callfunc_selector(HelloWorld::shockwaveDone)),
+									NULL);
+					_shockWave->runAction(_shockwaveSequence);
+					SimpleAudioEngine::getInstance()->playEffect(
+							"bombRelease.wav");
+				} else {
+					SimpleAudioEngine::getInstance()->playEffect(
+							"bombFail.wav");
+				}
+				_bomb->setVisible(false);
+				//reset hits with shockwave, so we can count combo hits
+				_shockwaveHits = 0;
 
+				//if no bomb currently on screen, create one
 			} else {
 				Vec2 tap = touch->getLocation();
 				_bomb->setScale(0.1f);
 				_bomb->setPosition(tap);
 				_bomb->setVisible(true);
 				_bomb->setOpacity(50);
+				//action to grow bomb
+				_bomb->runAction(ScaleTo::create(6.0f, 1));
+				Sprite * child;
+				child = (Sprite *) _bomb->getChildByTag(kSpriteHalo);
+				//action to rotate sprites
+				auto _rotateSprite = RepeatForever::create(
+						RotateBy::create(0.5f, -90));
+				child->runAction(_rotateSprite);
+				child = (Sprite *) _bomb->getChildByTag(kSpriteSparkle);
+				child->runAction(_rotateSprite);
 			}
-//			if (_bomb->isVisible()) {
-//				_bomb->stopAllActions();
-//				Sprite * child;
-//				child = (Sprite *) _bomb->getChildByTag(kSpriteHalo);
-//				child->stopAllActions();
-//				child = (Sprite *) _bomb->getChildByTag(kSpriteSparkle);
-//				child->stopAllActions();
-////				if bomb is the right size, then create shockwave
-//				if (_bomb->getScale() > 0.3f) {
-//					_shockWave->setScale(0.1f);
-//					_shockWave->setPosition(_bomb->getPosition());
-//					_shockWave->setVisible(true);
-//					_shockWave->runAction(
-//							ScaleTo::create(0.5f, _bomb->getScale() * 2.0f));
-//					_shockWave->runAction(
-//							(FiniteTimeAction*) _shockwaveSequence->copy()->autorelease());
-//					SimpleAudioEngine::sharedEngine()->playEffect(
-//							"bombRelease.wav");
-//
-//				} else {
-//					SimpleAudioEngine::sharedEngine()->playEffect(
-//							"bombFail.wav");
-//				}
-//				_bomb->setVisible(false);
-//				//reset hits with shockwave, so we can count combo hits
-//				_shockwaveHits = 0;
-//
-//				//if no bomb currently on screen, create one
-//			} else {
-//				Vec2 tap = touch->getLocation();
-//				_bomb->stopAllActions();
-//				_bomb->setScale(0.1f);
-//				_bomb->setPosition(tap);
-//				_bomb->setVisible(true);
-//				_bomb->setOpacity(50);
-//				_bomb->runAction((CCAction *) _growBomb->copy()->autorelease());
-//
-//				Sprite * child;
-//				child = (Sprite *) _bomb->getChildByTag(kSpriteHalo);
-//				child->runAction(
-//						(CCAction *) _rotateSprite->copy()->autorelease());
-//				child = (Sprite *) _bomb->getChildByTag(kSpriteSparkle);
-//				child->runAction(
-//						(CCAction *) _rotateSprite->copy()->autorelease());
-//			}
 		}
 	}
-
-//	Touch *touch = (Touch *) touches->anyObject();
-//
-//	if (touch) {
-//
-//		//if bomb already growing...
-//		if (_bomb->isVisible()) {
-//			//stop all actions on bomb, halo and sparkle
-//			_bomb->stopAllActions();
-//			CCSprite * child;
-//			child = (CCSprite *) _bomb->getChildByTag(kSpriteHalo);
-//			child->stopAllActions();
-//			child = (CCSprite *) _bomb->getChildByTag(kSpriteSparkle);
-//			child->stopAllActions();
-//
-//			//if bomb is the right size, then create shockwave
-//			if (_bomb->getScale() > 0.3f) {
-//
-//				_shockWave->setScale(0.1f);
-//				_shockWave->setPosition(_bomb->getPosition());
-//				_shockWave->setVisible(true);
-//				_shockWave->runAction(
-//						CCScaleTo::create(0.5f, _bomb->getScale() * 2.0f));
-//				_shockWave->runAction(
-//						(CCFiniteTimeAction*) _shockwaveSequence->copy()->autorelease());
-//				SimpleAudioEngine::sharedEngine()->playEffect(
-//						"bombRelease.wav");
-//
-//			} else {
-//				SimpleAudioEngine::sharedEngine()->playEffect("bombFail.wav");
-//			}
-//			_bomb->setVisible(false);
-//			//reset hits with shockwave, so we can count combo hits
-//			_shockwaveHits = 0;
-//
-//			//if no bomb currently on screen, create one
-//		} else {
-//
-//			Point tap = touch->getLocation();
-//			_bomb->stopAllActions();
-//			_bomb->setScale(0.1f);
-//			_bomb->setPosition(tap);
-//			_bomb->setVisible(true);
-//			_bomb->setOpacity(50);
-//			_bomb->runAction((CCAction *) _growBomb->copy()->autorelease());
-//
-//			CCSprite * child;
-//			child = (CCSprite *) _bomb->getChildByTag(kSpriteHalo);
-//			child->runAction((CCAction *) _rotateSprite->copy()->autorelease());
-//			child = (CCSprite *) _bomb->getChildByTag(kSpriteSparkle);
-//			child->runAction((CCAction *) _rotateSprite->copy()->autorelease());
-//		}
-//	}
 }
 
 //call back for when falling object reaches its target
@@ -299,9 +260,26 @@ void HelloWorld::fallingObjectDone(Node* pSender) {
 	if (pSender->getTag() == kSpriteMeteor) {
 		_energy -= 15;
 		//show explosion animation
-		pSender->runAction((CCAction*) _groundHit->copy()->autorelease());
+		//animation for ground hit
+		auto animation = Animation::create();
+		SpriteFrame * frame;
+		for (int i = 1; i <= 10; i++) {
+			char szName[100] = { 0 };
+			sprintf(szName, "boom%i.png", i);
+			frame = SpriteFrameCache::getInstance()->spriteFrameByName(szName);
+			animation->addSpriteFrame(frame);
+		}
+
+		animation->setDelayPerUnit(1 / 10.0f);
+		animation->setRestoreOriginalFrame(true);
+		auto _groundHit = Sequence::create(
+				MoveBy::create(0, Vec2(0, _screenSize.height * 0.12f)),
+				Animate::create(animation),
+				CallFuncN::create(this,
+						callfuncN_selector(HelloWorld::animationDone)), NULL);
+		pSender->runAction(_groundHit);
 		//play explosion sound
-		SimpleAudioEngine::sharedEngine()->playEffect("boom.wav");
+		SimpleAudioEngine::getInstance()->playEffect("boom.wav");
 
 		//if object is a health drop...
 	} else {
@@ -322,14 +300,14 @@ void HelloWorld::fallingObjectDone(Node* pSender) {
 		}
 
 		//play health bonus sound
-		SimpleAudioEngine::sharedEngine()->playEffect("health.wav");
+		SimpleAudioEngine::getInstance()->playEffect("health.wav");
 	}
 
 	//if energy is less or equal 0, game over
 	if (_energy <= 0) {
 		_energy = 0;
 		this->stopGame();
-		SimpleAudioEngine::sharedEngine()->playEffect("fire_truck.wav");
+		SimpleAudioEngine::getInstance()->playEffect("fire_truck.wav");
 		//show GameOver
 		_gameOverMessage->setVisible(true);
 	}
@@ -375,16 +353,14 @@ void HelloWorld::resetMeteor(void) {
 							+ meteor->boundingBox().size.height * 0.5));
 
 	//create action for meteor (rotate forever, move to target, and call function)
-	CCActionInterval* rotate = CCRotateBy::create(0.5f, -90);
-	CCAction* repeatRotate = CCRepeatForever::create(rotate);
-	CCFiniteTimeAction* sequence = CCSequence::create(
-			CCMoveTo::create(_meteorSpeed,
+	auto sequence = Sequence::create(
+			MoveTo::create(_meteorSpeed,
 					Vec2(meteor_target_x, _screenSize.height * 0.15f)),
-			CCCallFuncN::create(this,
+			CallFuncN::create(this,
 					callfuncN_selector(HelloWorld::fallingObjectDone)), NULL);
 
 	meteor->setVisible(true);
-	meteor->runAction(repeatRotate);
+	meteor->runAction(RepeatForever::create(RotateBy::create(0.5f, -90)));
 	meteor->runAction(sequence);
 	_fallingObjects->pushBack(meteor);
 
@@ -413,14 +389,20 @@ void HelloWorld::resetHealth(void) {
 							+ health->boundingBox().size.height * 0.5));
 
 	//create action (swing, move to target, and call function when done)
-	CCFiniteTimeAction* sequence = CCSequence::create(
-			CCMoveTo::create(_healthSpeed,
+	FiniteTimeAction* sequence = Sequence::create(
+			MoveTo::create(_healthSpeed,
 					Vec2(health_target_x, _screenSize.height * 0.15f)),
-			CCCallFuncN::create(this,
+			CallFuncN::create(this,
 					callfuncN_selector(HelloWorld::fallingObjectDone)), NULL);
 
 	health->setVisible(true);
-	health->runAction((CCAction *) _swingHealth->copy()->autorelease());
+
+	//swing action for health drops
+	FiniteTimeAction* easeSwing = Sequence::create(
+			EaseInOut::create(RotateTo::create(1.2f, -10), 2),
+			EaseInOut::create(RotateTo::create(1.2f, 10), 2), NULL);
+	auto _swingHealth = RepeatForever::create((ActionInterval*) easeSwing);
+	health->runAction(_swingHealth);
 	health->runAction(sequence);
 	_fallingObjects->pushBack(health);
 }
@@ -645,68 +627,6 @@ void HelloWorld::createPools() {
 
 void HelloWorld::createActions() {
 
-	//swing action for health drops
-	CCFiniteTimeAction* easeSwing = CCSequence::create(
-			CCEaseInOut::create(CCRotateTo::create(1.2f, -10), 2),
-			CCEaseInOut::create(CCRotateTo::create(1.2f, 10), 2), NULL);
-	_swingHealth = CCRepeatForever::create((CCActionInterval*) easeSwing);
-	_swingHealth->retain();
-
-	//action sequence for shockwave: fade out, call back when done
-	_shockwaveSequence = CCSequence::create(CCFadeOut::create(1.0f),
-			CCCallFunc::create(this,
-					callfunc_selector(HelloWorld::shockwaveDone)), NULL);
-	_shockwaveSequence->retain();
-
-	//action to grow bomb
-	_growBomb = CCScaleTo::create(6.0f, 1);
-	_growBomb->retain();
-
-	//action to rotate sprites
-	CCActionInterval* rotate = CCRotateBy::create(0.5f, -90);
-	_rotateSprite = CCRepeatForever::create(rotate);
-	_rotateSprite->retain();
-
-	//sprite animations
-	CCAnimation* animation;
-	animation = CCAnimation::create();
-	CCSpriteFrame * frame;
-	int i;
-	//animation for ground hit
-	for (i = 1; i <= 10; i++) {
-		char szName[100] = { 0 };
-		sprintf(szName, "boom%i.png", i);
-		frame = CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(
-				szName);
-		animation->addSpriteFrame(frame);
-	}
-
-	animation->setDelayPerUnit(1 / 10.0f);
-	animation->setRestoreOriginalFrame(true);
-	_groundHit = CCSequence::create(
-			CCMoveBy::create(0, Vec2(0, _screenSize.height * 0.12f)),
-			CCAnimate::create(animation),
-			CCCallFuncN::create(this,
-					callfuncN_selector(HelloWorld::animationDone)), NULL);
-	_groundHit->retain();
-
-	animation = CCAnimation::create();
-	//animation for falling object explosion
-	for (i = 1; i <= 7; i++) {
-		char szName[100] = { 0 };
-		sprintf(szName, "explosion_small%i.png", i);
-		frame = CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(
-				szName);
-		animation->addSpriteFrame(frame);
-	}
-
-	animation->setDelayPerUnit(0.5 / 7.0f);
-	animation->setRestoreOriginalFrame(true);
-	_explosion = CCSequence::create(CCAnimate::create(animation),
-			CCCallFuncN::create(this,
-					callfuncN_selector(HelloWorld::animationDone)), NULL);
-	;
-	_explosion->retain();
 }
 
 void HelloWorld::menuCloseCallback(Ref* pSender) {
